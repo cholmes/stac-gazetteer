@@ -1,0 +1,147 @@
+{
+  "type": "Collection",
+  "stac_version": "1.1.0",
+  "stac_extensions": [
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://cholmes.github.io/stac-gazetteer/gazetteer/v1.0.0/schema.json"
+  ],
+  "id": "fieldmaps-subnational-names",
+  "title": "FieldMaps subnational — searchable names index",
+  "description": "ILLUSTRATIVE, NOT PUBLISHED. What adopting the `gazetteer` extension alone would look like for an existing catalog: one sorted names parquet beside boundary files that already exist, with no change to those files and no simplified variant required. Row counts and column names are taken from the real published fieldmaps/subnational/global layers (2026-11-17); the index asset itself is hypothetical. Place-name/boundary lookup, not address geocoding.",
+  "license": "ODbL-1.0",
+  "providers": [
+    {
+      "name": "FieldMaps",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://fieldmaps.io/"
+    }
+  ],
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          -180.0,
+          -90.0,
+          180.0,
+          83.67
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2026-11-17T00:00:00Z",
+          null
+        ]
+      ]
+    }
+  },
+  "gazetteer:levels": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "gazetteer:normalization": "nfd-strip-marks-lower/1",
+  "gazetteer:sort": [
+    "name_norm",
+    "level",
+    "iso3"
+  ],
+  "assets": {
+    "index": {
+      "href": "./names.parquet",
+      "type": "application/vnd.apache.parquet",
+      "roles": [
+        "gazetteer-index"
+      ],
+      "title": "Names index for ADM1-ADM4 (sorted by name_norm)",
+      "table:row_count": 588836,
+      "table:columns": [
+        {
+          "name": "name",
+          "type": "string",
+          "description": "From adm{N}_name."
+        },
+        {
+          "name": "name_norm",
+          "type": "string",
+          "description": "THE SORT KEY, byte-wise UTF-8 ascending."
+        },
+        {
+          "name": "level",
+          "type": "int32",
+          "description": "1-4, from the source layer."
+        },
+        {
+          "name": "feature_id",
+          "type": "string",
+          "description": "From adm{N}_id."
+        },
+        {
+          "name": "country",
+          "type": "string",
+          "description": "From iso3."
+        },
+        {
+          "name": "country_name",
+          "type": "string",
+          "description": "From adm0_name -- already denormalised on every row upstream, so no join."
+        },
+        {
+          "name": "parent_name",
+          "type": "string",
+          "description": "From adm{N-1}_name -- likewise already present."
+        },
+        {
+          "name": "area_km2",
+          "type": "double",
+          "description": "From area_sqkm."
+        },
+        {
+          "name": "xmin",
+          "type": "float"
+        },
+        {
+          "name": "ymin",
+          "type": "float"
+        },
+        {
+          "name": "xmax",
+          "type": "float"
+        },
+        {
+          "name": "ymax",
+          "type": "float"
+        },
+        {
+          "name": "name_lang",
+          "type": "string",
+          "description": "From lang. ~12% of ADM2 rows carry an alternate name."
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "description": "From src_lic -- per-row licence, which this catalogue genuinely mixes."
+        }
+      ],
+      "gazetteer:feature_id_column": "feature_id",
+      "gazetteer:row_groups": 24
+    },
+    "boundaries-adm2-full": {
+      "href": "../global/adm2-polygons/adm2_polygons.parquet",
+      "type": "application/vnd.apache.parquet",
+      "roles": [
+        "data"
+      ],
+      "title": "ADM2 polygons (existing, unmodified)",
+      "description": "NOT tagged gazetteer-boundaries: this is the existing full-resolution file, listed only to show the index can reference files that already exist. Tagging it would require the gazetteer-boundaries extension and a join column.",
+      "file:size": 1168778447,
+      "table:row_count": 51803
+    }
+  }
+}

@@ -1,0 +1,204 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cholmes.github.io/stac-gazetteer/gazetteer/v1.0.0/schema.json#",
+  "title": "Gazetteer Extension",
+  "description": "STAC Gazetteer Extension for STAC Catalogs and Collections. Declares that a Collection publishes a names index (a sorted parquet file) that lets a client do place-name search over HTTP range requests, with no server. Collection-level only: a client should NOT expect gazetteer:* fields in Item properties.",
+  "type": "object",
+  "required": [
+    "stac_extensions"
+  ],
+  "properties": {
+    "stac_extensions": {
+      "type": "array",
+      "contains": {
+        "const": "https://cholmes.github.io/stac-gazetteer/gazetteer/v1.0.0/schema.json"
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "$comment": "STAC Items (Features): gazetteer:* is forbidden in Item properties. This is a Collection-level extension; it has nothing to say about Items beyond that prohibition.",
+      "$ref": "#/definitions/item"
+    },
+    {
+      "$comment": "STAC Collections: this is where the extension actually applies.",
+      "$ref": "#/definitions/collection"
+    },
+    {
+      "$comment": "STAC Catalogs: the extension URI may be declared, but no fields are required or defined at the Catalog level.",
+      "$ref": "#/definitions/catalog"
+    }
+  ],
+  "definitions": {
+    "item": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "Feature"
+        },
+        "properties": {
+          "type": "object",
+          "patternProperties": {
+            "^gazetteer:": false
+          }
+        }
+      }
+    },
+    "catalog": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "Catalog"
+        }
+      }
+    },
+    "collection": {
+      "type": "object",
+      "required": [
+        "type",
+        "gazetteer:levels",
+        "gazetteer:normalization",
+        "gazetteer:sort",
+        "assets"
+      ],
+      "properties": {
+        "type": {
+          "const": "Collection"
+        },
+        "gazetteer:levels": {
+          "title": "Admin levels present in the gazetteer",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "gazetteer:normalization": {
+          "title": "Normalization algorithm identifier",
+          "description": "Identifies the normalization that produced gazetteer:sort's column(s), e.g. 'nfd-strip-marks-lower/1'. The MOST load-bearing field in this extension -- see the README section 'What this schema cannot check'.",
+          "type": "string"
+        },
+        "gazetteer:sort": {
+          "title": "Sort column(s)",
+          "description": "The index column (or ordered list of columns) the asset's rows ascend by, compared byte-wise on UTF-8 encoding -- NOT locale collation.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "gazetteer:stats_truncated": {
+          "title": "Statistics truncated",
+          "type": "boolean"
+        },
+        "gazetteer:dropped_unnamed": {
+          "title": "Unnamed rows dropped",
+          "type": "integer",
+          "minimum": 0
+        },
+        "assets": {
+          "$ref": "#/definitions/assetsWithIndex"
+        }
+      }
+    },
+    "assetsWithIndex": {
+      "$comment": "Requires at least one asset whose roles include 'gazetteer-index'. Object schemas have no `contains` keyword (that is array-only), so this is its object equivalent: NOT every asset may fail to be a gazetteer-index asset.",
+      "type": "object",
+      "allOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/definitions/asset"
+          }
+        },
+        {
+          "not": {
+            "additionalProperties": {
+              "not": {
+                "$ref": "#/definitions/gazetteerIndexAsset"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "gazetteerIndexAsset": {
+      "type": "object",
+      "required": [
+        "roles"
+      ],
+      "properties": {
+        "roles": {
+          "type": "array",
+          "contains": {
+            "const": "gazetteer-index"
+          }
+        }
+      }
+    },
+    "asset": {
+      "$comment": "gazetteer:* field types below are scoped to the 'then' branch -- i.e. only enforced on assets with roles including 'gazetteer-index' -- because gazetteer-boundaries assets reuse some of the same field names (e.g. gazetteer:feature_id_column) with a different allowed type (string-or-null). Declaring the types unconditionally here would wrongly constrain those other assets too.",
+      "type": "object",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "if": {
+        "required": [
+          "roles"
+        ],
+        "properties": {
+          "roles": {
+            "contains": {
+              "const": "gazetteer-index"
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "gazetteer:row_groups"
+        ],
+        "properties": {
+          "gazetteer:row_groups": {
+            "title": "Row groups",
+            "type": "integer",
+            "minimum": 1
+          },
+          "gazetteer:feature_id_column": {
+            "title": "Feature id column",
+            "description": "Defaults to 'feature_id' when absent.",
+            "type": "string"
+          },
+          "gazetteer:footer_metadata_bytes": {
+            "title": "Footer metadata bytes",
+            "description": "Size in bytes of the thrift footer alone (not the footer + page index). This is what a hyparquet-style client should request.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "gazetteer:row_group_rows": {
+            "title": "Rows per row group",
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    }
+  }
+}

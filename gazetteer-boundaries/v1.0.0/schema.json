@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cholmes.github.io/stac-gazetteer/gazetteer-boundaries/v1.0.0/schema.json#",
+  "title": "Gazetteer Boundaries Extension",
+  "description": "STAC Gazetteer Boundaries Extension for STAC Catalogs, Collections and Items. Upgrades a `gazetteer` search result's bbox to a polygon by declaring per-level, per-variant boundary assets and their join columns against the gazetteer names index. Depends on the gazetteer extension; this extension only constrains assets, wherever they appear.",
+  "type": "object",
+  "required": [
+    "stac_extensions"
+  ],
+  "properties": {
+    "stac_extensions": {
+      "type": "array",
+      "contains": {
+        "const": "https://cholmes.github.io/stac-gazetteer/gazetteer-boundaries/v1.0.0/schema.json"
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/definitions/item"
+    },
+    {
+      "$ref": "#/definitions/collection"
+    },
+    {
+      "$ref": "#/definitions/catalog"
+    }
+  ],
+  "definitions": {
+    "item": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "Feature"
+        },
+        "assets": {
+          "$ref": "#/definitions/assets"
+        },
+        "properties": {
+          "type": "object",
+          "patternProperties": {
+            "^gazetteer:": false
+          }
+        }
+      }
+    },
+    "catalog": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "Catalog"
+        }
+      }
+    },
+    "collection": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "Collection"
+        },
+        "assets": {
+          "$ref": "#/definitions/assets"
+        }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/asset"
+      }
+    },
+    "asset": {
+      "$comment": "gazetteer:* field types below are scoped to the 'then' branch -- i.e. only enforced on assets with roles including 'gazetteer-boundaries' -- because the gazetteer extension reuses some of the same field names (e.g. gazetteer:feature_id_column, gazetteer:row_groups) on the gazetteer-index asset with a different allowed type or without the null case. Declaring the types unconditionally here would wrongly constrain that asset too.",
+      "type": "object",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "if": {
+        "required": [
+          "roles"
+        ],
+        "properties": {
+          "roles": {
+            "contains": {
+              "const": "gazetteer-boundaries"
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "gazetteer:level",
+          "gazetteer:variant",
+          "gazetteer:geometry_column"
+        ],
+        "properties": {
+          "gazetteer:level": {
+            "title": "Admin level",
+            "type": "integer",
+            "minimum": 0
+          },
+          "gazetteer:variant": {
+            "title": "Geometry resolution variant",
+            "type": "string",
+            "enum": [
+              "full",
+              "display"
+            ]
+          },
+          "gazetteer:geometry_column": {
+            "title": "Geometry column",
+            "type": "string"
+          },
+          "gazetteer:feature_id_column": {
+            "title": "Feature id column",
+            "description": "The boundary file's own join column. An explicit JSON null is legal and meaningful -- distinct from the field being absent -- for files with no id column at all (e.g. geoBoundaries CGAZ ADM0).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gazetteer:index_key_column": {
+            "title": "Index key column",
+            "description": "Which column of the gazetteer index is the join key, used when gazetteer:feature_id_column is null.",
+            "type": "string"
+          },
+          "gazetteer:country_column": {
+            "title": "Country column",
+            "description": "Narrows candidate row groups by country.",
+            "type": "string"
+          },
+          "gazetteer:row_group_rows": {
+            "title": "Rows per row group",
+            "description": "Required for the geometry_ref fast path: the ref's row_group is checked against floor(row / row_group_rows).",
+            "type": "integer",
+            "minimum": 1
+          },
+          "gazetteer:row_groups": {
+            "title": "Row groups",
+            "type": "integer",
+            "minimum": 1
+          },
+          "gazetteer:footer_metadata_bytes": {
+            "title": "Footer metadata bytes",
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}
